@@ -1,0 +1,125 @@
+- hosts: nginx
+  gather_facts: no
+  become: yes
+  vars_files:
+    - keys.yml
+  remote_user: admin #user on the ec2 instance
+  tasks:
+    - name: wait for ssh to come up
+      wait_for_connection:
+        delay: 5
+        timeout: 120
+  
+    - name: Gathering facts
+      setup:
+
+    - name: Set up NGINX Plus license
+      block:
+        - name: Create SSL directory
+          file:
+              path: /etc/ssl/nginx
+              state: directory
+              mode: 0755
+
+        - name: Copy NGINX Plus certificate and license key
+          copy:
+              src: "{{ item }}"
+              dest: /etc/ssl/nginx
+              decrypt: true
+              mode: 0444
+          loop:
+              - "{{ nginx_license['certificate'] }}"
+              - "{{ nginx_license['key'] }}"
+      when: ansible_facts['os_family'] != "Alpine"
+
+    - name: (Debian/Ubuntu) Install dependencies
+      apt:
+        name: "{{ nginx_debian_dependencies }}"
+        update_cache: true
+        state: latest  
+      when: ansible_facts['os_family'] == "Debian"
+
+    - name: Add Signing Key
+      apt_key: 
+        url: https://cs.nginx.com/static/keys/nginx_signing.key
+        id: ABF5BD827BD9BF62
+        state: present 
+
+    - name: NGINX Plus license verification
+      blockinfile:
+        path: /etc/apt/apt.conf.d/90nginx
+        create: true
+        block: |
+          Acquire::https::pkgs.nginx.com::Verify-Peer "true";
+          Acquire::https::pkgs.nginx.com::Verify-Host "true";
+          Acquire::https::pkgs.nginx.com::SslCert "/etc/ssl/nginx/nginx-repo.crt";
+          Acquire::https::pkgs.nginx.com::SslKey "/etc/ssl/nginx/nginx-repo.key";
+        state: "{{ nginx_license_status | default ('present') }}"
+        mode: 0444
+
+    - name: Add NGINX Management Suite Apt repository
+      ansible.builtin.apt_repository:
+        repo: deb https://pkgs.nginx.com/nms/debian buster nginx-plus
+        state: present
+        filename: nms.list
+
+    - name: Add NGINX Plus Apt repository
+      ansible.builtin.apt_repository:
+        repo: deb https://pkgs.nginx.com/plus/debian buster nginx-plus
+        state: present
+        filename: nginx-plus.list
+
+    - name: Install NGINX Plus
+      apt:
+        name: "nginx-plus"
+        update_cache: true
+        state: latest  
+
+    - name: Add clickhouse Signing Key
+      apt_key: >
+        keyserver="hkp://keyserver.ubuntu.com:80"
+        id="8919F6BD2B48D754"
+
+    - name: Add Clickhouse Apt repository
+      ansible.builtin.apt_repository:
+        repo: deb https://packages.clickhouse.com/deb stable main
+        state: present
+        filename: clickhouse.list
+
+    - name: Install Clickhouse
+      apt:
+        name: [ 'clickhouse-server', 'clickhouse-client' ]
+        update_cache: true
+
+    - name: Start Clickhouse Service
+      ansible.builtin.service:
+        name: clickhouse-server
+        state: started
+
+    - name: Install NMS
+      apt:
+        name: nms-instance-manager
+        update_cache: true
+      register: command_output 
+
+    - debug:
+        var: command_output.stdout_lines
+
+    - name: Enable NMS Services
+      service:
+        name: "{{ item }}"
+        enabled: yes
+      with_items: 
+       - nms
+       - nms-core
+       - nms-dpm
+       - nms-ingestion
+       - nms-integrations
+
+    - name: Start NMS and NGINX Services
+      service:
+        name: "{{ item }}"
+        state: started
+      with_items: 
+       - nms
+       - nginx

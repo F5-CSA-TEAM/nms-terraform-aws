@@ -1,0 +1,9 @@
+nginx_debian_dependencies: [
+  'lsb-release', 'wget', 'gnupg2', 'debian-archive-keyring', 'apt-transport-https', 'ca-certificates', 'dirmngr']
+nginx_default_signing_key_pgp: https://nginx.org/keys/nginx_signing.key
+nginx_license:
+  certificate: nginx-repo.crt
+  key: nginx-repo.key
+nginx_manage_repo: true
+nginx_state: present
+nginx_start: true
