@@ -56,9 +56,9 @@ resource "aws_security_group" "nginx-iac-sg" {
   }
 }
 
-resource "aws_instance" "project-iac" {
+resource "aws_instance" "nginx-mgmt-plane" {
   ami = data.aws_ami.buster.id
-  instance_type = lookup(var.awsprops, "itype")
+  instance_type = lookup(var.awsprops, "mgmt-plane-itype")
   associate_public_ip_address = lookup(var.awsprops, "publicip")
   key_name = aws_key_pair.deployer.key_name
 
@@ -79,6 +79,65 @@ resource "aws_instance" "project-iac" {
   depends_on = [ aws_security_group.nginx-iac-sg ]
 }
 
-output "ec2instance" {
-  value = aws_instance.project-iac.public_ip
+resource "aws_instance" "nginx-data-plane" {
+
+  count = 2
+
+  ami = data.aws_ami.buster.id
+  instance_type = lookup(var.awsprops, "data-plane-itype")
+  associate_public_ip_address = lookup(var.awsprops, "publicip")
+  key_name = aws_key_pair.deployer.key_name
+
+  vpc_security_group_ids = [
+    aws_security_group.nginx-iac-sg.id
+  ]
+  root_block_device {
+    delete_on_termination = true
+    volume_size = 50
+  }
+  tags = {
+    Name ="NGINX Management Suite - Data Plane"
+    Environment = "DEV"
+    OS = "Debian"
+    ManagedBy = "m.kingston@f5.com"
+  }
+
+  depends_on = [ aws_security_group.nginx-iac-sg ]
 }
+
+resource "aws_instance" "nginx-dev-portal" {
+  
+    ami = data.aws_ami.buster.id
+    instance_type = lookup(var.awsprops, "dev-portal-itype")
+    associate_public_ip_address = lookup(var.awsprops, "publicip")
+    key_name = aws_key_pair.deployer.key_name
+  
+    vpc_security_group_ids = [
+      aws_security_group.nginx-iac-sg.id
+    ]
+    root_block_device {
+      delete_on_termination = true
+      volume_size = 50
+    }
+    tags = {
+      Name ="NGINX Management Suite - Dev Portal"
+      Environment = "DEV"
+      OS = "Debian"
+      ManagedBy = "m.kingston@f5.com"
+    }
+  
+    depends_on = [ aws_security_group.nginx-iac-sg ]
+  }
+
+
+output "nginx_mgmt_ec2instance" {
+    value = aws_instance.nginx-mgmt-plane.public_ip
+  }
+
+output "nginx_data_plane_ec2instance" {
+    value = aws_instance.nginx-data-plane[*].public_ip
+  }
+
+output "nginx_dev_portal_ec2instance" {
+    value = aws_instance.nginx-dev-portal.public_ip
+  }
