@@ -1,4 +1,5 @@
-- hosts: nginx
+#ansible-playbook deploy-nsm.yml --ssh-common-args='-o StrictHostKeyChecking=no'
+- hosts: nsm
   gather_facts: no
   become: yes
   vars_files:
