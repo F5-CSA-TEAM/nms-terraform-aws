@@ -105,6 +105,11 @@
     - debug:
         var: command_output.stdout_lines
 
+    - name: Install API Commectivity Manager Module
+      apt:
+        name: nms-api-connectivity-manager
+        update_cache: true
+
     - name: Enable NMS Services
       service:
         name: "{{ item }}"
@@ -115,6 +120,7 @@
        - nms-dpm
        - nms-ingestion
        - nms-integrations
+       - nms-acm
 
     - name: Start NMS and NGINX Services
       service:
