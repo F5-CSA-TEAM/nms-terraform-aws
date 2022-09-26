@@ -44,20 +44,6 @@ resource "aws_security_group" "nginx-iac-sg" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
-  ingress {
-    from_port = 11080
-    protocol = "tcp"
-    to_port = 11085
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  ingress {
-    from_port = 8000
-    protocol = "tcp"
-    to_port = 8100
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
   egress {
     from_port       = 0
     to_port         = 0
@@ -84,9 +70,9 @@ resource "aws_instance" "project-iac" {
     volume_size = 50
   }
   tags = {
-    Name ="NGINX Plus"
+    Name ="NGINX Management Suite"
     Environment = "DEV"
-    OS = "UBUNTU"
+    OS = "Debian"
     ManagedBy = "m.kingston@f5.com"
   }
 
