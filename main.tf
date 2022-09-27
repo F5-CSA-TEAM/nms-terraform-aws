@@ -101,7 +101,6 @@ resource "aws_instance" "nginx-data-plane" {
     OS = "Debian"
     ManagedBy = "m.kingston@f5.com"
   }
-
   depends_on = [ aws_security_group.nginx-iac-sg ]
 }
 
@@ -129,6 +128,17 @@ resource "aws_instance" "nginx-dev-portal" {
     depends_on = [ aws_security_group.nginx-iac-sg ]
   }
 
+#generate inventory file for Ansible
+resource "local_file" "hosts_cfg" {
+  content = templatefile("${path.module}/templates/hosts.tpl",
+    {
+      nginx_mgmt = aws_instance.nginx-mgmt-plane.*.public_ip
+      nginx_data_plane = aws_instance.nginx-data-plane.*.public_ip
+      nginx_dev_portal = aws_instance.nginx-dev-portal.*.public_ip
+    }
+  )
+  filename = "../ansible/inventory/hosts.cfg"
+}
 
 output "nginx_mgmt_ec2instance" {
     value = aws_instance.nginx-mgmt-plane.public_ip
@@ -141,3 +151,4 @@ output "nginx_data_plane_ec2instance" {
 output "nginx_dev_portal_ec2instance" {
     value = aws_instance.nginx-dev-portal.public_ip
   }
+  
