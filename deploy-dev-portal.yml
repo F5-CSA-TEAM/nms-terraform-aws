@@ -1,0 +1,146 @@
+- hosts: nginx_dev_portal
+  gather_facts: no
+  become: yes
+  vars_files:
+    - keys.yml
+  remote_user: admin #user on the ec2 instance
+  tasks:
+    - name: Gathering facts
+      setup:
+
+    - name: Set up NGINX Plus license
+      block:
+        - name: Create SSL directory
+          file:
+              path: /etc/ssl/nginx
+              state: directory
+              mode: 0755
+
+        - name: Copy NGINX Plus certificate and license key
+          copy:
+              src: "{{ item }}"
+              dest: /etc/ssl/nginx
+              decrypt: true
+              mode: 0444
+          loop:
+              - "{{ nginx_license['certificate'] }}"
+              - "{{ nginx_license['key'] }}"
+      when: ansible_facts['os_family'] != "Alpine"
+
+    - name: (Debian/Ubuntu) Install dependencies
+      apt:
+        name: "{{ nginx_debian_dependencies }}"
+        update_cache: true
+        state: latest
+      when: ansible_facts['os_family'] == "Debian"
+
+    - name: Add Signing Key
+      apt_key:
+        url: https://cs.nginx.com/static/keys/nginx_signing.key
+        id: ABF5BD827BD9BF62
+        state: present
+
+    - name: NGINX Plus license verification
+      blockinfile:
+        path: /etc/apt/apt.conf.d/90nginx
+        create: true
+        block: |
+          Acquire::https::pkgs.nginx.com::Verify-Peer "true";
+          Acquire::https::pkgs.nginx.com::Verify-Host "true";
+          Acquire::https::pkgs.nginx.com::SslCert "/etc/ssl/nginx/nginx-repo.crt";
+          Acquire::https::pkgs.nginx.com::SslKey "/etc/ssl/nginx/nginx-repo.key";
+        state: "{{ nginx_license_status | default ('present') }}"
+        mode: 0444
+
+    - name: Add NGINX Management Suite Apt repository
+      ansible.builtin.apt_repository:
+        repo: deb https://pkgs.nginx.com/nms/debian buster nginx-plus
+        state: present
+        filename: nms.list
+
+    - name: Add NGINX Plus Apt repository
+      ansible.builtin.apt_repository:
+        repo: deb https://pkgs.nginx.com/plus/debian buster nginx-plus
+        state: present
+        filename: nginx-plus.list
+
+    - name: Install NGINX Plus
+      apt:
+        name: "nginx-plus"
+        update_cache: true
+        state: latest
+
+    - name: Install njs
+      apt:
+        name: "nginx-plus-module-njs"
+        update_cache: true
+        state: latest
+
+    - name: Install Developer Portal
+      apt:
+        name: [ 'nginx-devportal', 'nginx-devportal-ui' ]
+        update_cache: true
+
+    - name: Install PostgreSQL
+      apt:
+        name: postgresql-11
+        update_cache: true
+
+    - name: Configure PostgreSQL host-based authentication (HBA) file
+      shell:
+        cmd: |
+          cat > /etc/postgresql/11/main/pg_hba.conf << EOF
+          # TYPE DATABASE USER ADDRESS METHOD
+          local all postgres peer
+          local all all md5
+          # IPv4 local connections:
+          host all all 127.0.0.1/32 md5
+          # IPv6 local connections:
+          host all all ::1/128 md5
+          EOF
+
+    - name: Restart PostgreSQL Service
+      service:
+        name: "{{ item }}"
+        state: restarted
+      with_items:
+       - postgresql
+
+    - name: Create the devportal database, add the nginxdm user, and assign privileges
+      command:  "{{ item }}"
+      with_items:
+        - sudo -u postgres createdb devportal
+        - sudo -u postgres psql -c "CREATE USER nginxdm WITH LOGIN PASSWORD 'nginxdm';"
+        - sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE devportal TO nginxdm;"
+      ignore_errors: true
+
+    - name: Start Dev Portal Service
+      service:
+        name: "{{ item }}"
+        state: started
+      with_items:
+       - nginx-devportal
+
+    - debug: var=hostvars[groups['nms'][0]].inventory_hostname
+      register: nms_ip
+
+    - name: Install the NMS agent
+      shell:
+        cmd: "curl -k https://'{{ hostvars[groups['nms'][0]].inventory_hostname }}'/install/nginx-agent | sudo sh"
+        creates: /lib/systemd/system/nginx-agent.service
+
+    - name: Start NGINX Service
+      service:
+        name: "{{ item }}"
+        state: started
+      with_items:
+       - nginx
+       - nginx-agent
+
+    - name: Enable Services
+      service:
+        name: "{{ item }}"
+        enabled: yes
+      with_items:
+       - nginx
+       - nginx-agent
