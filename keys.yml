@@ -1,5 +1,6 @@
 nginx_debian_dependencies: [
-  'lsb-release', 'wget', 'gnupg2', 'debian-archive-keyring', 'apt-transport-https', 'ca-certificates', 'dirmngr']
+  'lsb-release', 'wget', 'apache2-utils', 'gnupg2', 'debian-archive-keyring', 'apt-transport-https', 'ca-certificates', 'dirmngr']
 nginx_license:
   certificate: nginx-repo.crt
   key: nginx-repo.key
+nms_passwd: ChangeMe

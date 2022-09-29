@@ -1,4 +1,3 @@
-#ansible-playbook deploy-nsm.yml --ssh-common-args='-o StrictHostKeyChecking=no'
 - hosts: nms
   gather_facts: no
   become: yes
@@ -10,7 +9,7 @@
       wait_for_connection:
         delay: 5
         timeout: 120
-  
+
     - name: Gathering facts
       setup:
 
@@ -37,14 +36,14 @@
       apt:
         name: "{{ nginx_debian_dependencies }}"
         update_cache: true
-        state: latest  
+        state: latest
       when: ansible_facts['os_family'] == "Debian"
 
     - name: Add Signing Key
-      apt_key: 
+      apt_key:
         url: https://cs.nginx.com/static/keys/nginx_signing.key
         id: ABF5BD827BD9BF62
-        state: present 
+        state: present
 
     - name: NGINX Plus license verification
       blockinfile:
@@ -74,7 +73,7 @@
       apt:
         name: "nginx-plus"
         update_cache: true
-        state: latest  
+        state: latest
 
     - name: Add clickhouse Signing Key
       apt_key: >
@@ -101,7 +100,7 @@
       apt:
         name: nms-instance-manager
         update_cache: true
-      register: command_output 
+      register: command_output
 
     - debug:
         var: command_output.stdout_lines
@@ -115,7 +114,7 @@
       service:
         name: "{{ item }}"
         enabled: yes
-      with_items: 
+      with_items:
        - nms
        - nms-core
        - nms-dpm
@@ -123,10 +122,17 @@
        - nms-integrations
        - nms-acm
 
+    - name: Change Admin Password
+      shell:
+        cmd: htpasswd -b -c /etc/nms/nginx/.htpasswd admin '{{ nms_passwd }}'
+
     - name: Start NMS and NGINX Services
       service:
         name: "{{ item }}"
-        state: started
-      with_items: 
+        state: restarted
+      with_items:
        - nms
        - nginx
+
+
+
