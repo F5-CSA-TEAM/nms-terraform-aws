@@ -1,5 +1,11 @@
 # Deploy NGINX Management Suite, NGINX Plus and API Connectivity Manager in AWS (Debian 10)
 
+This deploys the following in AWS:
+
+- NGINX Management Suite + API Connectivity Manager
+- NGINX Plus x 2
+- NGINX Plus Developer Portal x 1
+
 ## Requirements
 
 - Laptop / Linux host / VM
