@@ -10,7 +10,72 @@
 
 - NGINX Plus Cert and Key
   https://www.nginx.com/free-trial-request/
-  
-- NGINX Management Suite License
 
 - Ansible and Terraform Installed
+
+## Pull the repo to your host
+
+``` git pull https://github.com/F5-CSA-TEAM/nms-terraform-aws ```
+
+## Configure AWS Credentials
+
+```
+export AWS_ACCESS_KEY_ID=""
+export AWS_SECRET_ACCESS_KEY=""
+export AWS_SESSION_TOKEN=""
+```
+
+## Edit Terraform Variables File (vars.tf)
+
+- Specify AWS Region
+
+- EC2 Machine Type
+
+- Security Group Name
+
+### Deploy EC2 instances in AWS Using Terraform
+``` 
+terraform init;
+
+terraform plan;
+
+terraform apply;
+```
+
+### Copy Created Hosts File to your Ansible Inventory (usually /etc/ansible/hosts)
+```
+cp ../ansible/inventory/hosts.cfg /etc/ansible/hosts
+```
+
+Ref: https://docs.ansible.com/ansible/latest/user_guide/intro_inventory.html
+
+### Prepare Ansible 
+
+- Set NGINX Management Suite password in keys.yml (nms_passwd)
+
+- Ensure NGINX cert and Key are in the running directory 
+
+### Deploy NGINX Management Suite (NMS) with API Connectivity Manager (ACM)
+
+Note: use <b>--ssh-common-args='-o StrictHostKeyChecking=no'</b> to ignore SSH authenticity checking
+
+```
+ansible-playbook deploy-nms.yml --ssh-common-args='-o StrictHostKeyChecking=no'
+```
+
+### Deploy the NGINX Plus Data Plane
+
+Note: use <b>--ssh-common-args='-o StrictHostKeyChecking=no'</b> to ignore SSH authenticity checking
+
+```
+ansible-playbook deploy-nginx-plus.yml --ssh-common-args='-o StrictHostKeyChecking=no'
+```
+
+### Deploy NGINX Plus Developer Portal Instance
+
+Note: use <b>--ssh-common-args='-o StrictHostKeyChecking=no'</b> to ignore SSH authenticity checking
+
+```
+ansible-playbook deploy-dev-portal.yml --ssh-common-args='-o StrictHostKeyChecking=no'
+```
+
