@@ -19,6 +19,8 @@
 
 ## Configure AWS Credentials
 
+Add your AWS Credentials below:
+
 ```
 export AWS_ACCESS_KEY_ID=""
 export AWS_SECRET_ACCESS_KEY=""
@@ -42,7 +44,12 @@ terraform plan;
 terraform apply;
 ```
 
+This will create an Ansible inventory file in ../ansible/inventory/hosts.cfg
+
 ### Copy Created Hosts File to your Ansible Inventory (usually /etc/ansible/hosts)
+
+Note: For MacOS you may need to create /etc/ansible/hosts
+
 ```
 cp ../ansible/inventory/hosts.cfg /etc/ansible/hosts
 ```
