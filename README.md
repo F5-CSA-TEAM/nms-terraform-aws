@@ -86,3 +86,6 @@ Note: use <b>--ssh-common-args='-o StrictHostKeyChecking=no'</b> to ignore SSH a
 ansible-playbook deploy-dev-portal.yml --ssh-common-args='-o StrictHostKeyChecking=no'
 ```
 
+### Access and License NGINX Management Suite 
+
+Access the NMS Login page at https://{NMS-IP}
