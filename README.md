@@ -10,5 +10,7 @@
 
 - NGINX Plus Cert and Key
   https://www.nginx.com/free-trial-request/
+  
+- NGINX Management Suite License
 
-- Absible and Terraform Installed
+- Ansible and Terraform Installed
