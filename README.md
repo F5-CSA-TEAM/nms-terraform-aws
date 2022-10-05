@@ -68,6 +68,8 @@ Ref: https://docs.ansible.com/ansible/latest/user_guide/intro_inventory.html
 
 - Ensure NGINX cert and Key are in the running directory 
 
+- Create default keypair (run "ssh-geygen")
+
 ### Deploy NGINX Management Suite (NMS) with API Connectivity Manager (ACM)
 
 Note: use <b>--ssh-common-args='-o StrictHostKeyChecking=no'</b> to ignore SSH authenticity checking
