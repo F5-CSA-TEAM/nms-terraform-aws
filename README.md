@@ -68,7 +68,7 @@ Ref: https://docs.ansible.com/ansible/latest/user_guide/intro_inventory.html
 
 - Ensure NGINX cert and Key are in the running directory 
 
-- Create default keypair (run "ssh-geygen")
+- Ensure there is a default keypair on your machine in ~/.ssh/ (run "ssh-keygen -t rsa -b 4096")
 
 ### Deploy NGINX Management Suite (NMS) with API Connectivity Manager (ACM)
 
