@@ -1,0 +1,178 @@
+---
+# For Debian 10
+- hosts: demo-apps
+  remote_user: admin #user on the ec2 instance
+  become: yes
+  vars_files:
+    - keys.yml
+  tasks:
+  - name: Remove any OS docker packages
+    apt:
+      name:
+        - docker
+        - docker-engine
+        - docker.io
+        - containerd
+        - runc
+      state: absent
+
+  - name: (Debian/Ubuntu) Install dependencies
+    apt:
+     name: "{{ nginx_debian_dependencies }}"
+     update_cache: true
+     state: latest
+    when: ansible_facts['os_family'] == "Debian"
+
+  - name: Add the Docker Repo Key
+    apt_key:
+      url: https://download.docker.com/linux/debian/gpg 
+      state: present
+
+  - name: Add the Docker Repo
+    apt_repository:
+      repo: deb [arch=amd64] https://download.docker.com/linux/debian   buster stable
+      state: present
+      update_cache: yes
+
+  - name: Install Docker
+    apt:
+      name:
+        - docker-ce
+        - docker-ce-cli
+        - containerd.io
+        - python3-pip
+        - python3-setuptools
+      state: latest
+      update_cache: true
+
+  - name: Add user to the docker group
+    user:
+      name: admin
+      append: yes
+      groups: docker
+
+  - name: Reset the SSH connection to pick up new groups
+    meta: reset_connection
+
+  - name: Install Docker Module for Python
+    pip:
+      name: docker
+
+  - name: Install MYSQL 
+    docker_container:
+      name: mysql-wp
+      image: mysql:5.7
+      hostname: mysql-wp
+      env:
+        MYSQL_ROOT_PASSWORD: ChangeMe
+
+  - name: Sleep for a few seconds to let database start up
+    wait_for:
+      timeout: 20
+
+  - name: Create MySQL DB
+    command:  "{{ item }}"
+    with_items:
+      - docker exec -t mysql-wp mysql -u root -pChangeMe -e 'create database WP1'
+      - docker exec -t mysql-wp mysql -u root -pChangeMe -e 'create database WP2'
+    ignore_errors: true
+
+  - name: Deploy Wordpress Container 1
+    docker_container:
+      name: wp1
+      image: wordpress
+      hostname: wp1
+      links:
+        - mysql-wp:mysql
+      ports:
+        - "11081:80"
+      env:
+        WORDPRESS_DB_HOST: mysql-wp
+        WORDPRESS_DB_USER: root
+        WORDPRESS_DB_PASSWORD: ChangeMe
+        WORDPRESS_DB_NAME: WP1
+
+  - name: Deploy Wordpress Container 2
+    docker_container:
+      name: wp2
+      image: wordpress
+      hostname: wp2
+      links:
+        - mysql-wp:mysql
+      ports:
+        - "11082:80"
+      env:
+        WORDPRESS_DB_HOST: mysql-wp
+        WORDPRESS_DB_USER: root
+        WORDPRESS_DB_PASSWORD: ChangeMe
+        WORDPRESS_DB_NAME: WP2
+
+  - name: Deploy Arcadia Container - main
+    docker_container:
+      name: mainapp
+      hostname: mainapp
+      image: registry.gitlab.com/arcadia-application/main-app/mainapp:latest
+      published_ports:
+        - 0.0.0.0:8005:80
+
+  - name: Deploy Arcadia Container - backend
+    docker_container:
+      name: backend
+      hostname: backend
+      image: registry.gitlab.com/arcadia-application/back-end/backend:latest
+      published_ports:
+       - 0.0.0.0:8006:80
+
+  - name: Deploy Arcadia Container - app2
+    docker_container:
+      name: app2
+      hostname: app2
+      image: registry.gitlab.com/arcadia-application/app2/app2:latest
+      published_ports:
+        - 0.0.0.0:8007:80
+
+  - name: Deploy Arcadia Container - app3
+    docker_container:
+      name: app3
+      hostname: app3
+      image: registry.gitlab.com/arcadia-application/app3/app3:latest
+      published_ports:
+        - 0.0.0.0:8008:80
+
+  - name: Deploy ErgastF1 API
+    docker_container:
+      name: ergastf1
+      image: tuxinvader/ergast-f1-api
+      state: started
+      published_ports:
+        - 0.0.0.0:8001:80
+
+  - name: Deploy Vulnerable Web App
+    docker_container:
+      name: dvwa
+      image: vulnerables/web-dvwa
+      ports:
+        - "8010:80"
+
+  - name: Deploy Keycloak
+    docker_container:
+      name: keycloak
+      image: jboss/keycloak
+      hostname: keycloak_idp
+      ports:
+        - "8009:8080"
+      env:
+        KEYCLOAK_USER: admin 
+        KEYCLOAK_PASSWORD: ChangeMe
+
+  - name: Sleep for a few seconds to let keycloak start up
+    wait_for:
+      timeout: 15
+
+  - name: Configure Keycloak for HTTP since HTTPS is enabled
+    command:  "{{ item }}"
+    with_items:
+      - docker exec -t keycloak bash /opt/jboss/keycloak/bin/kcadm.sh config credentials --server http://localhost:8080/auth --realm master --user admin --password ChangeMe
+      - docker exec -t keycloak bash /opt/jboss/keycloak/bin/kcadm.sh update realms/master -s sslRequired=NONE
+    ignore_errors: true
+
