@@ -121,6 +121,7 @@
        - nms-ingestion
        - nms-integrations
        - nms-acm
+       - nms-sm
 
     - name: Change Admin Password
       shell:
@@ -133,6 +134,3 @@
       with_items:
        - nms
        - nginx
-
-
-
