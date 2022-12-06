@@ -110,6 +110,11 @@
         name: nms-api-connectivity-manager
         update_cache: true
 
+      - name: Install Security Monitoring Module
+      apt:
+        name: nms-sm
+        update_cache: true
+
     - name: Enable NMS Services
       service:
         name: "{{ item }}"
@@ -121,7 +126,6 @@
        - nms-ingestion
        - nms-integrations
        - nms-acm
-       - nms-sm
 
     - name: Change Admin Password
       shell:
@@ -134,3 +138,4 @@
       with_items:
        - nms
        - nginx
+       - nms-acm
