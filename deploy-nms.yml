@@ -110,10 +110,10 @@
         name: nms-api-connectivity-manager
         update_cache: true
 
-      - name: Install Security Monitoring Module
+    - name: Install Security Monitoring Module
       apt:
-        name: nms-sm
-        update_cache: true
+       name: nms-sm         
+       update_cache: true
 
     - name: Enable NMS Services
       service:

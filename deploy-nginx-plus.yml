@@ -64,14 +64,19 @@
         update_cache: true
         state: latest
 
-    - debug: var=hostvars[groups['nms'][0]].inventory_hostname
-      register: nms_ip
+    - name: Display IP for the NMS host from Inventory
+      debug:
+        var: hostvars[groups['nms'][0]].inventory_hostname
 
     - name: Install the NMS agent
       shell:
         cmd: "curl -k https://'{{ hostvars[groups['nms'][0]].inventory_hostname }}'/install/nginx-agent | sudo sh"
         creates: /lib/systemd/system/nginx-agent.service
+      register: command_output
 
+    - debug:
+        var: command_output.stdout_lines
+        
     - name: Start NGINX Service
       service:
         name: "{{ item }}"
