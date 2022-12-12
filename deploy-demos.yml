@@ -80,7 +80,7 @@
   - name: Deploy Wordpress Container 1
     docker_container:
       name: wp1
-      image: wordpress
+      image: wordpress:4.8
       hostname: wp1
       links:
         - mysql-wp:mysql
@@ -95,7 +95,7 @@
   - name: Deploy Wordpress Container 2
     docker_container:
       name: wp2
-      image: wordpress
+      image: wordpress:4.8
       hostname: wp2
       links:
         - mysql-wp:mysql
